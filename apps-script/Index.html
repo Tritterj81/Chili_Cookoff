@@ -196,8 +196,18 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   padding: .8rem; border-radius: 8px;
 }
 .pick input:focus-visible + .tile { outline: 3px solid var(--focus); outline-offset: 2px; }
-.dish { display: none; gap: .35rem; padding: 0 .8rem .9rem; }
+.dish { display: none; gap: .6rem; padding: 0 .8rem .9rem; }
 .cat.on .dish { display: grid; }
+.soup-rows { display: grid; gap: .5rem; }
+.soup-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem .5rem; align-items: center; }
+.soup-row .lbl { grid-column: 1 / -1; }
+.x {
+  width: 2.75rem; height: 2.75rem; display: grid; place-items: center;
+  background: transparent; color: var(--ink); cursor: pointer;
+  border: 2px solid var(--line-strong); border-radius: 8px; font: 500 1.4rem/1 var(--font-body);
+}
+.x:hover { border-color: var(--danger); color: var(--danger); }
+.add-soup { justify-self: start; font-size: .9rem; padding: .5rem .9rem; min-height: 2.5rem; }
 @media (prefers-reduced-motion: no-preference) { .cat.on .dish { animation: open .2s ease-out; } }
 @keyframes open { from { opacity: 0; transform: translateY(-4px); } }
 .thumb {
@@ -311,8 +321,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   overflow-wrap: anywhere;
 }
 .names li:last-child { border-bottom: 0; }
-.names .who { font-weight: 700; font-size: 1.1rem; }
-.names .what { font-style: italic; color: var(--ink-soft); }
+.names .soup { font-weight: 700; font-size: 1.1rem; }
 .names .you {
   font: 600 .75rem var(--font-head); text-transform: uppercase; letter-spacing: .1em;
   background: var(--ink); color: var(--paper); border-radius: 4px; padding: .1rem .4rem;
@@ -322,6 +331,28 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   .names li.fresh { animation: flash 2.6s ease-out; }
 }
 @keyframes flash { from { background: color-mix(in srgb, var(--c-spicy) 55%, transparent); } to { background: transparent; } }
+
+.blind-note { margin: 0; color: var(--ink-soft); font-style: italic; }
+
+/* organizer */
+.linklike {
+  background: none; border: 0; padding: .4rem .6rem; cursor: pointer;
+  color: var(--ink-soft); font: 500 .9rem var(--font-body); text-decoration: underline;
+}
+.linklike:hover { color: var(--ink); }
+.org-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: center; }
+.org-who { margin: 0; font-weight: 600; }
+.org-sum { margin: 0; color: var(--ink-soft); }
+.org-id { font-size: .8rem; color: var(--ink-soft); }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; min-width: 34rem; border-collapse: collapse; }
+th, td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 .85rem var(--font-head); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); }
+td .dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; background: var(--c); margin-right: .3rem; }
+td .cats-cell { display: flex; flex-wrap: wrap; gap: .2rem .8rem; }
+td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.copybox { width: 100%; min-height: 8rem; font: 500 .95rem/1.4 var(--font-body); color: var(--ink); background: var(--field); border: 2px solid var(--line-strong); border-radius: 8px; padding: .6rem; }
 
 /* day-of notes */
 .notes {
@@ -339,6 +370,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .foot { text-align: center; display: grid; gap: .8rem; }
 .foot p { margin: 0; font: 400 1.5rem/1.2 var(--font-script); }
 .foot .gingham { border-radius: 6px; }
+.foot .org-link { font: 500 .9rem var(--font-body); }
 
 @media (min-width: 640px) {
   .cats, .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -428,11 +460,47 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   <section class="board" aria-labelledby="board-h">
     <div class="board-head">
-      <h2 class="band" id="board-h">Who's cooking</h2>
+      <h2 class="band" id="board-h">What's cooking</h2>
       <p class="tally"><span id="tally">Loading the list...</span>
         <span class="live" id="live" data-state="connecting"><i></i><span id="live-text">Connecting</span></span></p>
     </div>
+    <p class="blind-note">This is a blind tasting, so cook names are kept private.</p>
     <div class="grid" id="board"></div>
+  </section>
+
+  <section class="card" id="organizer" aria-labelledby="org-h" hidden>
+    <div class="gingham" aria-hidden="true"></div>
+    <div class="card-body">
+      <h2 class="band" id="org-h">Organizer</h2>
+
+      <form id="org-login" novalidate>
+        <div class="field">
+          <label class="lbl" for="org-code">Organizer passcode</label>
+          <div class="org-row">
+            <input type="password" id="org-code" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="org-err">
+            <button class="btn" type="submit" id="org-go">Open roster</button>
+          </div>
+          <p class="err" id="org-err" role="alert" hidden></p>
+        </div>
+      </form>
+
+      <div id="org-roster" hidden>
+        <p class="org-who" id="org-who"></p>
+        <p class="org-sum" id="org-sum"></p>
+        <div class="tools">
+          <button class="btn ghost" type="button" id="copy">Copy list</button>
+          <button class="btn ghost" type="button" id="org-out">Sign out</button>
+          <span class="msg" id="copy-msg" role="status" aria-live="polite"></span>
+        </div>
+        <textarea class="copybox" id="copybox" readonly hidden aria-label="Roster, ready to copy"></textarea>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Cook</th><th>Category</th><th>Soup</th><th>Signed up</th><th><span class="sr-only">Remove</span></th></tr></thead>
+            <tbody id="roster-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="notes" aria-label="Day-of details">
@@ -453,6 +521,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   <footer class="foot">
     <p>Good Soup. Good People. Great Times!</p>
     <div class="gingham" aria-hidden="true"></div>
+    <p class="org-link"><button type="button" class="linklike" id="org-open" aria-expanded="false" aria-controls="organizer">Organizer sign-in</button></p>
   </footer>
 </main>
 
@@ -471,11 +540,15 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   var EVENT = new Date(2026, 9, 19, 12, 0, 0);
   var POLL_MS = 8000;
   var KEY_NAME = 'soupCookOff2026Key';
+  var ORG_NAME = 'soupCookOff2026Org';
+  var MAX_PER_CAT = 6;
   var CHECK = '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   var S = {
-    key: '', entries: [], mine: null, loaded: false, conn: 'connecting', failures: 0,
-    editing: false, saving: false, refreshing: false, fresh: {}, withdrawArmed: false
+    key: '', soups: [], counts: {}, cooks: 0, soupTotal: 0, me: null,
+    loaded: false, conn: 'connecting', failures: 0,
+    editing: false, saving: false, refreshing: false, fresh: {}, withdrawArmed: false,
+    org: { open: false, signedIn: false, code: '', data: null, busy: false, removing: null }
   };
 
   function $(id) { return document.getElementById(id); }
@@ -494,10 +567,11 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return (parts.length > 1 ? parts[0] + parts[parts.length - 1] : parts[0]).toLocaleUpperCase();
   }
 
-  /* ---- this browser's private edit key (lets a person change or withdraw their own sign-up) ---- */
+  /* ---- this browser's private storage ---- */
 
-  function loadKey() { try { return localStorage.getItem(KEY_NAME) || ''; } catch (e) { return ''; } }
-  function saveKey(k) { try { localStorage.setItem(KEY_NAME, k); } catch (e) { /* private mode: edit works until the page closes */ } }
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: works until the page closes */ } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* nothing to remove */ } }
   function newKey() {
     var a = new Uint8Array(16), out = '';
     if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
@@ -518,41 +592,40 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
 
   var ERROR_TEXT = {
-    name: 'Enter your name so everyone knows who is cooking.',
-    cats: 'Pick at least one category.',
+    name: 'Enter your name so the organizers know who is cooking.',
+    soups: 'Pick at least one category.',
+    dish: 'Give every soup a name.',
     full: 'The sign-up sheet is full. Let the organizer know.',
     busy: 'A lot of people are signing up right now. Try again in a moment.'
   };
+  var ORG_ERROR_TEXT = {
+    passcode: 'That passcode is not on the Organizers tab of the sheet.',
+    locked: 'Too many wrong tries. Wait ten minutes, or open the Google Sheet instead.',
+    busy: 'The sheet is busy. Try again in a moment.'
+  };
 
-  function clean(e) {
-    var seen = {};
-    var cats = (e.categories || []).filter(function (c) { if (!CAT_BY_ID[c] || seen[c]) return false; seen[c] = 1; return true; });
-    var dishes = {};
-    cats.forEach(function (c) { dishes[c] = clip(e.dishes && typeof e.dishes === 'object' ? e.dishes[c] : '', 80); });
-    return {
-      id: String(e.id || ''),
-      name: clip(e.name, 60) || 'Someone',
-      categories: cats,
-      dishes: dishes,
-      createdAt: Number(e.createdAt) || 0,
-      mine: !!e.mine
-    };
-  }
+  function cleanSoup(s) { return { id: String(s.id || ''), cat: s.cat, dish: clip(s.dish, 80), mine: !!s.mine }; }
 
   function applyList(res) {
     if (!res || !res.ok) throw new Error('bad response');
     var known = {};
-    S.entries.forEach(function (e) { known[e.id] = true; });
+    S.soups.forEach(function (s) { known[s.id] = true; });
     var first = !S.loaded;
-    S.entries = res.entries.map(clean).sort(function (a, b) { return (a.createdAt - b.createdAt) || a.name.localeCompare(b.name); });
+    S.soups = res.soups.filter(function (s) { return CAT_BY_ID[s.cat]; }).map(cleanSoup);
+    S.counts = res.counts || {};
+    S.cooks = Number(res.cooks) || 0;
+    S.soupTotal = Number(res.soupTotal) || 0;
+    S.me = res.me ? {
+      name: clip(res.me.name, 60) || 'You',
+      soups: (res.me.soups || []).filter(function (s) { return CAT_BY_ID[s.cat]; }).map(function (s) { return { cat: s.cat, dish: clip(s.dish, 80) }; })
+    } : null;
     if (!first) {
-      S.entries.forEach(function (e) {
-        if (known[e.id]) return;
-        S.fresh[e.id] = true;
-        setTimeout(function () { delete S.fresh[e.id]; }, 4000);
+      S.soups.forEach(function (s) {
+        if (known[s.id]) return;
+        S.fresh[s.id] = true;
+        setTimeout(function () { delete S.fresh[s.id]; }, 4000);
       });
     }
-    S.mine = S.entries.filter(function (e) { return e.mine; })[0] || null;
     S.loaded = true; S.failures = 0; S.conn = 'live';
   }
 
@@ -562,10 +635,16 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     rpc('getSignups', S.key)
       .then(applyList)
       .catch(function () { S.failures++; if (S.failures >= 2) S.conn = 'offline'; })
-      .then(function () { S.refreshing = false; render(); });
+      .then(function () {
+        S.refreshing = false;
+        render();
+        if (S.org.signedIn) refreshRoster();
+      });
   }
 
-  /* ---- static pieces ---- */
+  /* ---- form pieces ---- */
+
+  var rowSeq = 0;
 
   function buildTiles() {
     var box = $('cats');
@@ -585,25 +664,114 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       pick.append(input, tile);
 
       var dish = make('div', 'dish');
-      var lbl = make('label', 'lbl', 'Name your soup');
-      lbl.htmlFor = 'dish-' + c.id;
-      lbl.append(make('span', 'sr-only', ' for ' + c.name), make('small', null, 'Optional'));
-      var field = document.createElement('input');
-      field.type = 'text'; field.id = 'dish-' + c.id; field.maxLength = 80; field.autocomplete = 'off';
-      field.placeholder = 'Ex: ' + c.ex.split(',')[0];
-      dish.append(lbl, field);
+      var rows = make('div', 'soup-rows'); rows.id = 'rows-' + c.id;
+      var add = make('button', 'btn ghost add-soup', '+ Add another soup');
+      add.type = 'button'; add.id = 'add-' + c.id; add.dataset.cat = c.id;
+      var err = make('p', 'err'); err.id = 'err-' + c.id; err.hidden = true; err.setAttribute('role', 'alert');
+      dish.append(rows, add, err);
 
       card.append(pick, dish);
       box.append(card);
     });
   }
 
+  function addRow(catId, value, focus) {
+    var wrap = $('rows-' + catId), c = CAT_BY_ID[catId];
+    if (wrap.children.length >= MAX_PER_CAT) return;
+    var first = wrap.children.length === 0;
+    var id = 'dish-' + catId + '-' + (++rowSeq);
+    var row = make('div', 'soup-row');
+    var lbl = make('label', first ? 'lbl' : 'sr-only', first ? 'Name your soup' : 'Name of soup ' + (wrap.children.length + 1));
+    lbl.htmlFor = id;
+    lbl.append(make('span', 'sr-only', ' for ' + c.name));
+    if (first) lbl.append(make('small', null, 'Required'));
+    var input = document.createElement('input');
+    input.type = 'text'; input.id = id; input.maxLength = 80; input.autocomplete = 'off';
+    input.placeholder = first ? 'Ex: ' + c.ex.split(',')[0] : 'Another ' + c.name + ' soup';
+    input.value = value || '';
+    input.setAttribute('aria-required', 'true');
+    input.setAttribute('aria-describedby', 'err-' + catId);
+    row.append(lbl, input);
+    if (!first) {
+      var x = make('button', 'x', '×');
+      x.type = 'button'; x.setAttribute('aria-label', 'Remove this soup');
+      row.append(x);
+    }
+    wrap.append(row);
+    $('add-' + catId).hidden = wrap.children.length >= MAX_PER_CAT;
+    if (focus) input.focus();
+  }
+
+  function onCatsClick(ev) {
+    var add = ev.target.closest('.add-soup');
+    if (add) { addRow(add.dataset.cat, '', true); return; }
+    var x = ev.target.closest('.x');
+    if (x) {
+      var row = x.closest('.soup-row'), wrap = row.parentNode;
+      var catId = wrap.id.replace('rows-', '');
+      row.remove();
+      $('add-' + catId).hidden = false;
+    }
+  }
+  function onCatsInput(ev) {
+    var inp = ev.target;
+    if (inp.type !== 'text') return;
+    inp.removeAttribute('aria-invalid');
+    setErr('err-' + inp.closest('.cat').dataset.cat, '');
+  }
+
   function syncTiles() {
-    document.querySelectorAll('.cat').forEach(function (card) {
-      card.classList.toggle('on', card.querySelector('input[name="cat"]').checked);
+    CATS.forEach(function (c) {
+      var card = document.querySelector('.cat[data-cat="' + c.id + '"]');
+      var on = card.querySelector('input[name="cat"]').checked;
+      card.classList.toggle('on', on);
+      if (on && !$('rows-' + c.id).children.length) addRow(c.id, '', false);
     });
   }
-  function resetForm() { $('form').reset(); syncTiles(); }
+
+  function resetForm() {
+    $('form').reset();
+    CATS.forEach(function (c) {
+      $('rows-' + c.id).replaceChildren();
+      $('add-' + c.id).hidden = false;
+      setErr('err-' + c.id, '');
+    });
+    syncTiles();
+  }
+
+  function fillForm() {
+    resetForm();
+    $('name').value = S.me.name;
+    var by = {};
+    S.me.soups.forEach(function (s) { (by[s.cat] = by[s.cat] || []).push(s.dish); });
+    CATS.forEach(function (c) {
+      if (!by[c.id]) return;
+      document.querySelector('input[name="cat"][value="' + c.id + '"]').checked = true;
+      by[c.id].forEach(function (d) { addRow(c.id, d, false); });
+    });
+    syncTiles();
+  }
+
+  /** The checked categories' soups, plus the first empty soup name if any. */
+  function gather() {
+    var soups = [], bad = {}, firstBad = null, anyChecked = false;
+    CATS.forEach(function (c) {
+      if (!document.querySelector('input[name="cat"][value="' + c.id + '"]').checked) return;
+      anyChecked = true;
+      Array.prototype.forEach.call($('rows-' + c.id).querySelectorAll('input'), function (inp) {
+        var dish = clip(inp.value, 80);
+        if (!dish) {
+          bad[c.id] = true; inp.setAttribute('aria-invalid', 'true');
+          if (!firstBad) firstBad = inp;
+          return;
+        }
+        soups.push({ cat: c.id, dish: dish });
+      });
+    });
+    return { soups: soups, bad: bad, firstBad: firstBad, anyChecked: anyChecked };
+  }
+
+  /* ---- board ---- */
 
   var refs = {};
   function buildBoard() {
@@ -613,7 +781,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       card.dataset.cat = c.id;
       var head = make('header', 'bhead');
       var thumb = make('span', 'thumb'); thumb.setAttribute('aria-hidden', 'true');
-      var count = make('span', 'count-pill', '0');
+      var count = make('span', 'count-pill');
       head.append(thumb, make('h3', null, c.name), count);
       var list = make('ol', 'names');
       var empty = make('p', 'empty');
@@ -630,35 +798,35 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     $('countdown').textContent = n > 1 ? n + ' days to go' : n === 1 ? 'Tomorrow' : n === 0 ? 'Today at 12:00 PM' : 'Cook-off complete';
   }
 
-  /* ---- live board ---- */
-
   function renderLive() {
-    var live = $('live');
-    live.dataset.state = S.conn;
+    $('live').dataset.state = S.conn;
     $('live-text').textContent = S.conn === 'live' ? 'Live' : S.conn === 'offline' ? 'Reconnecting' : 'Connecting';
   }
 
   function renderBoard() {
-    var per = {}, soups = 0;
+    var per = {};
     CATS.forEach(function (c) { per[c.id] = []; });
-    S.entries.forEach(function (e) { e.categories.forEach(function (c) { per[c].push(e); soups++; }); });
+    S.soups.forEach(function (s) { per[s.cat].push(s); });
     $('tally').textContent = S.loaded
-      ? plural(S.entries.length, 'cook', 'cooks') + ' signed up, ' + plural(soups, 'soup', 'soups')
+      ? plural(S.cooks, 'cook', 'cooks') + ' signed up, ' + plural(S.soupTotal, 'soup', 'soups')
       : (S.conn === 'offline' ? 'Having trouble loading the list.' : 'Loading the list...');
 
     CATS.forEach(function (c) {
       var r = refs[c.id], list = per[c.id];
-      r.count.textContent = plural(list.length, 'cook', 'cooks');
-      r.list.replaceChildren.apply(r.list, list.map(function (e) {
-        var li = make('li', S.fresh[e.id] ? 'fresh' : '');
-        li.append(make('span', 'who', e.name));
-        if (e.dishes[c.id]) li.append(make('span', 'what', e.dishes[c.id]));
-        if (e.mine) li.append(make('span', 'you', 'You'));
+      var ct = S.counts[c.id] || { soups: list.length, cooks: 0 };
+      r.count.hidden = !S.loaded;
+      r.count.textContent = ct.soups === ct.cooks
+        ? plural(ct.cooks, 'cook', 'cooks')
+        : plural(ct.soups, 'soup', 'soups') + ' · ' + plural(ct.cooks, 'cook', 'cooks');
+      r.list.replaceChildren.apply(r.list, list.map(function (s) {
+        var li = make('li', S.fresh[s.id] ? 'fresh' : '');
+        li.append(make('span', 'soup', s.dish));
+        if (s.mine) li.append(make('span', 'you', 'Yours'));
         return li;
       }));
       r.list.hidden = !list.length;
       r.empty.hidden = !!list.length;
-      r.empty.textContent = S.loaded ? 'Nobody yet. Be the first to claim ' + c.name + '.'
+      r.empty.textContent = S.loaded ? 'No soups yet. Be the first to enter ' + c.name + '.'
         : (S.conn === 'offline' ? 'The list will appear when the connection comes back.' : 'Checking the list...');
     });
   }
@@ -667,24 +835,23 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   function renderSignup() {
     $('fields').disabled = S.saving;
-    var showDone = !!S.mine && !S.editing;
+    var showDone = !!S.me && !S.editing;
     $('done').hidden = !showDone;
     $('form').hidden = showDone;
     $('cancel-edit').hidden = !S.editing;
-    $('submit-label').textContent = S.mine ? 'Save my changes' : 'Add me to the cook-off';
+    $('submit-label').textContent = S.me ? 'Save my changes' : 'Add me to the cook-off';
 
     if (showDone) {
-      $('done-name').textContent = S.mine.name;
-      $('initials').textContent = initialsOf(S.mine.name);
-      $('label-text').textContent = S.mine.categories.length > 1
+      $('done-name').textContent = S.me.name;
+      $('initials').textContent = initialsOf(S.me.name);
+      $('label-text').textContent = S.me.soups.length > 1
         ? 'Label each soup with what kind it is and your initials:'
         : 'Label your soup with what kind it is and your initials:';
       var list = $('done-cats');
-      list.replaceChildren.apply(list, S.mine.categories.map(function (id) {
+      list.replaceChildren.apply(list, S.me.soups.map(function (s) {
         var li = make('li');
-        li.dataset.cat = id;
-        li.append(make('span', 'chip', CAT_BY_ID[id].name));
-        if (S.mine.dishes[id]) li.append(make('span', 'dish-name', S.mine.dishes[id]));
+        li.dataset.cat = s.cat;
+        li.append(make('span', 'chip', CAT_BY_ID[s.cat].name), make('span', 'dish-name', s.dish));
         return li;
       }));
       var w = $('withdraw');
@@ -708,30 +875,36 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     ev.preventDefault();
     if (S.saving) return;
     var name = clip($('name').value, 60);
-    var cats = Array.prototype.slice.call(document.querySelectorAll('input[name="cat"]:checked')).map(function (i) { return i.value; });
 
     setErr('name-err', ''); setErr('cat-err', ''); setMsg('');
+    CATS.forEach(function (c) { setErr('err-' + c.id, ''); });
     $('name').removeAttribute('aria-invalid');
+    Array.prototype.forEach.call(document.querySelectorAll('.soup-rows input'), function (i) { i.removeAttribute('aria-invalid'); });
+
     if (!name) {
       setErr('name-err', ERROR_TEXT.name);
       $('name').setAttribute('aria-invalid', 'true');
       $('name').focus();
       return;
     }
-    if (!cats.length) {
-      setErr('cat-err', ERROR_TEXT.cats);
+    var g = gather();
+    if (!g.anyChecked) {
+      setErr('cat-err', ERROR_TEXT.soups);
       document.querySelector('input[name="cat"]').focus();
       return;
     }
+    if (g.firstBad) {
+      CATS.forEach(function (c) { if (g.bad[c.id]) setErr('err-' + c.id, 'Give this soup a name.'); });
+      g.firstBad.focus();
+      return;
+    }
 
-    var dishes = {};
-    cats.forEach(function (id) { dishes[id] = clip($('dish-' + id).value, 80); });
     var key = S.key || newKey();
     S.saving = true; renderSignup(); setMsg('Saving...');
-    rpc('saveSignup', { key: key, name: name, categories: cats, dishes: dishes, hp: $('website').value })
+    rpc('saveSignup', { key: key, name: name, soups: g.soups, hp: $('website').value })
       .then(function (res) {
         if (res && res.ok) {
-          S.key = key; saveKey(key);
+          S.key = key; lsSet(KEY_NAME, key);
           applyList(res);
           S.editing = false; resetForm(); setMsg('');
         } else {
@@ -743,11 +916,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
 
   function onEdit() {
-    if (!S.mine) return;
-    $('name').value = S.mine.name;
-    document.querySelectorAll('input[name="cat"]').forEach(function (i) { i.checked = S.mine.categories.indexOf(i.value) !== -1; });
-    CATS.forEach(function (c) { $('dish-' + c.id).value = S.mine.dishes[c.id] || ''; });
-    syncTiles();
+    if (!S.me) return;
+    fillForm();
     S.editing = true; setMsg(''); renderSignup();
     $('name').focus();
   }
@@ -758,7 +928,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   var armTimer = null;
   function onWithdraw() {
-    if (!S.mine) return;
+    if (!S.me) return;
     if (!S.withdrawArmed) {
       S.withdrawArmed = true; renderSignup();
       clearTimeout(armTimer);
@@ -773,19 +943,157 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       .then(function () { S.saving = false; render(); });
   }
 
-  function render() { renderLive(); renderBoard(); renderSignup(); }
+  /* ---- organizer ---- */
 
-  S.key = loadKey();
+  function renderOrganizer() {
+    var o = S.org;
+    $('organizer').hidden = !o.open;
+    $('org-open').setAttribute('aria-expanded', o.open ? 'true' : 'false');
+    $('org-login').hidden = o.signedIn;
+    $('org-roster').hidden = !o.signedIn;
+    if (!o.signedIn || !o.data) return;
+
+    var d = o.data;
+    $('org-who').textContent = 'Signed in as ' + d.organizer + '.';
+    $('org-sum').textContent = plural(d.cooks, 'cook', 'cooks') + ', ' + plural(d.soupTotal, 'soup', 'soups') + '.';
+    var fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var body = $('roster-rows');
+    if (!d.rows.length) {
+      var tr0 = make('tr'), td0 = make('td', null, 'No soups yet.');
+      td0.colSpan = 5; tr0.append(td0);
+      body.replaceChildren(tr0);
+      return;
+    }
+    body.replaceChildren.apply(body, d.rows.map(function (r) {
+      var tr = make('tr');
+      var cat = make('td'), tag = make('span');
+      tag.dataset.cat = r.cat;
+      tag.append(make('i', 'dot'), document.createTextNode((CAT_BY_ID[r.cat] || { name: r.cat }).name));
+      cat.append(tag);
+      tr.append(make('td', null, r.name), cat, make('td', null, r.dish),
+        make('td', 'when-cell', r.created ? fmt.format(new Date(r.created)) : '-'));
+      var armed = o.removing === r.id;
+      var b = make('button', 'btn ghost' + (armed ? ' armed' : ''), armed ? 'Confirm remove' : 'Remove');
+      b.type = 'button';
+      b.setAttribute('aria-label', (armed ? 'Confirm remove ' : 'Remove ') + r.dish + ' by ' + r.name);
+      b.addEventListener('click', function () { onOrgRemove(r.id); });
+      var act = make('td'); act.append(b); tr.append(act);
+      return tr;
+    }));
+  }
+
+  function setOrgData(res) { S.org.data = res; S.org.signedIn = true; }
+  function orgSignOut() {
+    S.org.signedIn = false; S.org.data = null; S.org.code = ''; S.org.removing = null;
+    lsDel(ORG_NAME);
+  }
+
+  function refreshRoster() {
+    rpc('getRoster', S.org.code)
+      .then(function (res) {
+        if (res && res.ok) setOrgData(res);
+        else if (res && res.error === 'passcode') { orgSignOut(); S.org.open = false; }
+      })
+      .catch(function () { /* keep showing the last roster */ })
+      .then(renderOrganizer);
+  }
+
+  function onOrgOpen() {
+    S.org.open = !S.org.open;
+    renderOrganizer();
+    if (S.org.open) {
+      $('organizer').scrollIntoView({ block: 'start' });
+      if (!S.org.signedIn) $('org-code').focus();
+    }
+  }
+
+  function onOrgLogin(ev) {
+    ev.preventDefault();
+    if (S.org.busy) return;
+    var code = $('org-code').value.trim();
+    setErr('org-err', '');
+    if (code.length < 4) { setErr('org-err', 'Enter your organizer passcode (4 or more characters).'); return; }
+    S.org.busy = true; $('org-go').disabled = true;
+    rpc('getRoster', code)
+      .then(function (res) {
+        if (res && res.ok) { S.org.code = code; lsSet(ORG_NAME, code); setOrgData(res); $('org-code').value = ''; }
+        else setErr('org-err', ORG_ERROR_TEXT[res && res.error] || 'Could not sign in. Try again.');
+      })
+      .catch(function () { setErr('org-err', 'Could not reach the sheet. Try again.'); })
+      .then(function () { S.org.busy = false; $('org-go').disabled = false; renderOrganizer(); });
+  }
+
+  var removeTimer = null;
+  function onOrgRemove(id) {
+    if (S.org.removing !== id) {
+      S.org.removing = id; renderOrganizer();
+      clearTimeout(removeTimer);
+      removeTimer = setTimeout(function () { S.org.removing = null; renderOrganizer(); }, 4000);
+      return;
+    }
+    clearTimeout(removeTimer); S.org.removing = null;
+    rpc('organizerRemove', S.org.code, id)
+      .then(function (res) { if (res && res.ok) setOrgData(res); else $('copy-msg').textContent = 'That did not go through. Try again.'; })
+      .catch(function () { $('copy-msg').textContent = 'That did not go through. Try again.'; })
+      .then(function () { renderOrganizer(); refresh(); });
+  }
+
+  function rosterText() {
+    var d = S.org.data, lines = ['Soup Cook Off - Monday, October 19 - 12:00 PM - QA Room'];
+    CATS.forEach(function (c) {
+      var rows = d.rows.filter(function (r) { return r.cat === c.id; });
+      var ct = d.counts[c.id] || { soups: 0, cooks: 0 };
+      lines.push('', c.name + ' (' + plural(ct.soups, 'soup', 'soups') + ', ' + plural(ct.cooks, 'cook', 'cooks') + ')');
+      rows.forEach(function (r) { lines.push('  ' + r.dish + ' - ' + r.name); });
+    });
+    lines.push('', plural(d.cooks, 'cook', 'cooks') + ', ' + plural(d.soupTotal, 'soup', 'soups') + ' in all');
+    return lines.join('\n');
+  }
+  function onCopy() {
+    if (!S.org.data) return;
+    var text = rosterText(), msg = $('copy-msg'), box = $('copybox');
+    function fallback() {
+      box.value = text; box.hidden = false; box.focus(); box.select();
+      msg.textContent = 'Select and copy the text below.';
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { box.hidden = true; msg.textContent = 'Copied.'; }, fallback);
+    } catch (e) { fallback(); }
+  }
+
+  function resumeOrganizer() {
+    var saved = lsGet(ORG_NAME);
+    if (!saved) return;
+    S.org.code = saved;
+    rpc('getRoster', saved)
+      .then(function (res) {
+        if (res && res.ok) { setOrgData(res); S.org.open = true; }
+        else if (res && res.error === 'passcode') orgSignOut();
+      })
+      .catch(function () { /* try again on the next visit */ })
+      .then(renderOrganizer);
+  }
+
+  function render() { renderLive(); renderBoard(); renderSignup(); renderOrganizer(); }
+
+  S.key = lsGet(KEY_NAME);
   buildTiles();
   buildBoard();
   renderCountdown();
   render();
   $('cats').addEventListener('change', syncTiles);
+  $('cats').addEventListener('click', onCatsClick);
+  $('cats').addEventListener('input', onCatsInput);
   $('form').addEventListener('submit', onSubmit);
   $('edit').addEventListener('click', onEdit);
   $('cancel-edit').addEventListener('click', onCancelEdit);
   $('withdraw').addEventListener('click', onWithdraw);
+  $('org-open').addEventListener('click', onOrgOpen);
+  $('org-login').addEventListener('submit', onOrgLogin);
+  $('org-out').addEventListener('click', function () { orgSignOut(); S.org.open = false; renderOrganizer(); });
+  $('copy').addEventListener('click', onCopy);
   refresh();
+  resumeOrganizer();
   setInterval(function () { if (!document.hidden) refresh(); }, POLL_MS);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
 })();

@@ -721,6 +721,7 @@ function saveSignup(p) {
     for (var i = mine.length - 1; i >= 0; i--) sh.deleteRow(mine[i]);
     var values = soups.map(function (s) { return [created, name, catName_(s.cat), s.dish, key]; });
     sh.getRange(sh.getLastRow() + 1, 1, values.length, COLS).setValues(values);
+    sortByCategory_(sh);
     CacheService.getScriptCache().remove(CACHE_KEY);
   } finally {
     lock.releaseLock();
@@ -795,7 +796,9 @@ function rosterResult_(organizerName) {
   var all = parseRows_(sheet_());
   var rows = all.map(function (r) {
     return { id: r.id, name: r.name, cat: r.cat, dish: r.dish, created: r.created };
-  }).sort(function (a, b) { return (a.created - b.created) || a.name.localeCompare(b.name); });
+  }).sort(function (a, b) {
+    return (catIndex_(a.cat) - catIndex_(b.cat)) || (a.created - b.created) || a.name.localeCompare(b.name);
+  });
   var res = summary_(all);
   res.ok = true;
   res.organizer = organizerName;
@@ -809,6 +812,25 @@ function fail_(code) { return { ok: false, error: code }; }
 
 function clip_(v, max) {
   return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function catIndex_(text) {
+  var id = catId_(text);
+  for (var i = 0; i < CATS.length; i++) if (CATS[i].id === id) return i;
+  return CATS.length;   // unknown categories go last
+}
+
+/** Keep the Sign-ups tab grouped by category (in the order on the flyer), then by sign-up time. */
+function sortByCategory_(sh) {
+  var last = sh.getLastRow();
+  if (last < 3) return;
+  var range = sh.getRange(2, 1, last - 1, COLS);
+  var rows = range.getValues().map(function (v, i) { return { v: v, i: i }; });
+  rows.sort(function (a, b) {
+    var ta = a.v[0] instanceof Date ? a.v[0].getTime() : 0, tb = b.v[0] instanceof Date ? b.v[0].getTime() : 0;
+    return (catIndex_(a.v[2]) - catIndex_(b.v[2])) || (ta - tb) || (a.i - b.i);
+  });
+  range.setValues(rows.map(function (r) { return r.v; }));
 }
 
 function catName_(id) {

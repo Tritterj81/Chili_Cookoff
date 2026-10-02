@@ -2,10 +2,10 @@
  * Soup Cook Off sign-up: the back end for the sign-up page (Index.html).
  *
  * Every sign-up becomes one row on the "Sign-ups" tab of the Google Sheet this
- * script is attached to, so the sheet is the live list. A "Totals" tab counts
- * cooks per category. Delete a row in the sheet to remove someone; type a row
- * in by hand to add someone (put anything, such as a check mark, under each
- * category they chose).
+ * script is attached to, so the sheet is the live list. Each person's soup name
+ * sits in the cell under the category it belongs to (a check mark if they left
+ * the name blank). A "Totals" tab counts cooks per category. Delete a row in
+ * the sheet to remove someone; type a row in by hand to add someone.
  *
  * Setup steps are in SETUP.md.
  */
@@ -21,8 +21,9 @@ var CATS = [
   { id: 'creamy',  name: 'Creamy',          color: '#1E4C94', ink: '#FFFFFF' },
   { id: 'wild',    name: 'Wild Card',       color: '#2F7A33', ink: '#FFFFFF' }
 ];
-var COLS = 8; // Signed up | Name | Making | 4 categories | Edit key
-var KEY_COL = 8;
+var COLS = 7; // Signed up | Name | 4 categories (soup name in each) | Edit key
+var CAT_COL = 3;  // first category column
+var KEY_COL = 7;
 var CACHE_KEY = 'rows';
 
 function doGet() {
@@ -44,26 +45,28 @@ function saveSignup(p) {
   var key = String(p.key || '');
   if (!/^[a-f0-9]{16,64}$/.test(key)) return { ok: false, error: 'key' };
   var name = clip_(p.name, 60);
-  var dish = clip_(p.dish, 80);
   if (!name) return { ok: false, error: 'name' };
   var picked = [];
   (Array.isArray(p.categories) ? p.categories : []).forEach(function (id) {
     if (CATS.some(function (c) { return c.id === id; }) && picked.indexOf(id) === -1) picked.push(id);
   });
   if (!picked.length) return { ok: false, error: 'cats' };
+  var dishes = p.dishes && typeof p.dishes === 'object' ? p.dishes : {};
 
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
   try {
     var sh = sheet_();
-    var cells = CATS.map(function (c) { return picked.indexOf(c.id) !== -1 ? '✓' : ''; });
+    var cells = CATS.map(function (c) {
+      return picked.indexOf(c.id) === -1 ? '' : (clip_(dishes[c.id], 80) || '✓');
+    });
     var row = findRow_(sh, key);
     if (row) {
-      sh.getRange(row, 2, 1, 2 + CATS.length).setValues([[name, dish].concat(cells)]);
+      sh.getRange(row, 2, 1, 1 + CATS.length).setValues([[name].concat(cells)]);
     } else {
       var last = sh.getLastRow();
       if (last - 1 >= MAX_ROWS) return { ok: false, error: 'full' };
-      sh.getRange(last + 1, 1, 1, COLS).setValues([[new Date(), name, dish].concat(cells, [key])]);
+      sh.getRange(last + 1, 1, 1, COLS).setValues([[new Date(), name].concat(cells, [key])]);
     }
     CacheService.getScriptCache().remove(CACHE_KEY);
   } finally {
@@ -95,6 +98,11 @@ function clip_(v, max) {
   return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+/** A bare check mark or "x" in a category cell means "yes", not a soup name. */
+function isMark_(s) {
+  return /^(✓|✔|x|yes|y|1|true)$/i.test(s);
+}
+
 function idFor_(text) {
   var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
   return bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('').slice(0, 10);
@@ -104,7 +112,7 @@ function listResult_(key) {
   key = String(key || '');
   var entries = readRows_().map(function (r) {
     return {
-      id: r.id, name: r.name, dish: r.dish, categories: r.categories, createdAt: r.createdAt,
+      id: r.id, name: r.name, categories: r.categories, dishes: r.dishes, createdAt: r.createdAt,
       mine: !!key && !!r.key && r.key === key
     };
   });
@@ -127,12 +135,18 @@ function readRows_() {
       if (!name) return;
       var key = String(v[KEY_COL - 1] || '').trim();
       var created = v[0] instanceof Date ? v[0].getTime() : (Date.parse(v[0]) || 0);
+      var cats = [], dishes = {};
+      CATS.forEach(function (c, i) {
+        var cell = clip_(v[CAT_COL - 1 + i], 80);
+        if (!cell) return;
+        cats.push(c.id);
+        dishes[c.id] = isMark_(cell) ? '' : cell;
+      });
       out.push({
         id: idFor_(key || ('m|' + name + '|' + created)),
         name: name,
-        dish: clip_(v[2], 80),
-        categories: CATS.filter(function (c, i) { return String(v[3 + i]).trim() !== ''; })
-          .map(function (c) { return c.id; }),
+        categories: cats,
+        dishes: dishes,
         createdAt: created,
         key: key
       });
@@ -154,7 +168,11 @@ function findRow_(sh, key) {
 
 function sheet_() {
   var ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
-  return ss.getSheetByName(SHEET_NAME) || createSheet_(ss);
+  var sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) return createSheet_(ss);
+  // An earlier layout had a separate "What they are making" column. Drop it so the columns line up.
+  if (String(sh.getRange(1, 3).getValue()) === 'What they are making') sh.deleteColumn(3);
+  return sh;
 }
 
 /** First run: lay out the sign-up tab and a Totals tab. */
@@ -167,19 +185,19 @@ function createSheet_(ss) {
   } else {
     sh = ss.insertSheet(SHEET_NAME, 0);
   }
-  var headers = ['Signed up', 'Name', 'What they are making']
+  var headers = ['Signed up', 'Name']
     .concat(CATS.map(function (c) { return c.name; }), ['Edit key (page use only)']);
   sh.getRange(1, 1, 1, COLS).setValues([headers])
     .setFontWeight('bold').setFontColor('#FBF5E6').setBackground('#14264A').setVerticalAlignment('middle');
   CATS.forEach(function (c, i) {
-    sh.getRange(1, 4 + i).setBackground(c.color).setFontColor(c.ink).setHorizontalAlignment('center');
+    sh.getRange(1, CAT_COL + i).setBackground(c.color).setFontColor(c.ink).setHorizontalAlignment('center');
   });
-  sh.getRange('B:C').setNumberFormat('@');            // plain text, so nothing typed on the page can run as a formula
+  sh.getRange('B:F').setNumberFormat('@');            // plain text, so nothing typed on the page can run as a formula
   sh.getRange('A:A').setNumberFormat('mmm d, h:mm AM/PM');
-  sh.getRange('D:G').setHorizontalAlignment('center').setFontSize(14);
+  sh.getRange('C:F').setWrap(true);
   sh.setFrozenRows(1);
-  sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 200); sh.setColumnWidth(3, 240);
-  for (var i = 4; i <= 7; i++) sh.setColumnWidth(i, 120);
+  sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 190);
+  for (var i = CAT_COL; i < CAT_COL + CATS.length; i++) sh.setColumnWidth(i, 170);
   sh.hideColumns(KEY_COL);                              // each person's private edit key lives here
   createTotals_(ss);
   return sh;
@@ -193,7 +211,7 @@ function createTotals_(ss) {
     .setFontWeight('bold').setFontSize(14);
   t.getRange('A3:B3').setValues([['Category', 'Cooks']]).setFontWeight('bold');
   CATS.forEach(function (c, i) {
-    var col = String.fromCharCode(68 + i); // D..G
+    var col = String.fromCharCode(64 + CAT_COL + i); // C..F
     t.getRange(4 + i, 1).setValue(c.name).setBackground(c.color).setFontColor(c.ink).setFontWeight('bold');
     t.getRange(4 + i, 2).setFormula('=COUNTA(' + q + col + '2:' + col + ')');
   });

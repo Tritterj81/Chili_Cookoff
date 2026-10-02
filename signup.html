@@ -168,23 +168,29 @@ input[type="text"]::placeholder { color: var(--ink-soft); opacity: .8; }
 input[aria-invalid="true"] { border-color: var(--danger); }
 .err { margin: 0; color: var(--danger); font-weight: 600; font-size: .95rem; }
 
-.cats { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; margin-top: .6rem; }
-.cat { position: relative; display: block; cursor: pointer; }
-.cat input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.tile {
-  display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) 1.7rem; gap: .9rem; align-items: center;
-  padding: .8rem;
+.cats { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; margin-top: .6rem; align-items: start; }
+.cat {
   background: var(--field);
   border: 2px solid var(--line); border-radius: 10px;
-  transition: border-color .15s, background-color .15s, transform .15s;
+  transition: border-color .15s, background-color .15s;
 }
-.cat:hover .tile { border-color: var(--c); }
-.cat input:focus-visible + .tile { outline: 3px solid var(--focus); outline-offset: 2px; }
-.cat input:checked + .tile {
+.cat:hover { border-color: var(--c); }
+.cat.on {
   border-color: var(--c);
   background: color-mix(in srgb, var(--c) 13%, var(--field));
   box-shadow: inset 0 0 0 1px var(--c);
 }
+.pick { position: relative; display: block; cursor: pointer; }
+.pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.tile {
+  display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) 1.7rem; gap: .9rem; align-items: center;
+  padding: .8rem; border-radius: 8px;
+}
+.pick input:focus-visible + .tile { outline: 3px solid var(--focus); outline-offset: 2px; }
+.dish { display: none; gap: .35rem; padding: 0 .8rem .9rem; }
+.cat.on .dish { display: grid; }
+@media (prefers-reduced-motion: no-preference) { .cat.on .dish { animation: open .2s ease-out; } }
+@keyframes open { from { opacity: 0; transform: translateY(-4px); } }
 .thumb {
   width: 100%; aspect-ratio: 1; border-radius: 12px;
   background: var(--img) center / cover no-repeat, var(--line);
@@ -205,7 +211,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   border: 2px solid var(--line-strong); color: transparent;
   transition: background-color .15s, color .15s, border-color .15s;
 }
-.cat input:checked + .tile .tick { background: var(--c); border-color: var(--c); color: var(--on); }
+.cat.on .tick { background: var(--c); border-color: var(--c); color: var(--on); }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
 .btn {
@@ -234,7 +240,9 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .done { display: grid; gap: 1rem; }
 .kicker { margin: 0; font: 600 .95rem var(--font-head); text-transform: uppercase; letter-spacing: .12em; color: var(--ok); }
 .done h3 { margin: 0; font: 400 clamp(2rem, 7vw, 3rem)/1.05 var(--font-script); overflow-wrap: anywhere; }
-.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.soups { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.soups li { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .9rem; }
+.soups .dish-name { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
 .chip {
   display: inline-block; background: var(--c); color: var(--on);
   font: 400 1.2rem/1.2 var(--font-script); padding: .2rem 1rem .3rem;
@@ -373,15 +381,10 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
           </div>
 
           <fieldset class="plain" aria-describedby="cat-err">
-            <legend>Soup categories <small>Pick as many as you like</small></legend>
+            <legend>Soup categories <small>Check each one you are entering</small></legend>
             <div class="cats" id="cats"></div>
             <p class="err" id="cat-err" role="alert" hidden></p>
           </fieldset>
-
-          <div class="field">
-            <label class="lbl" for="dish">What are you making? <small>Optional</small></label>
-            <input type="text" id="dish" name="dish" maxlength="80" autocomplete="off" placeholder="Chicken noodle, Grandma's chili...">
-          </div>
 
           <div class="actions">
             <button class="btn" type="submit" id="submit">
@@ -397,9 +400,9 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       <div class="done" id="done" hidden>
         <p class="kicker">You're on the list</p>
         <h3 id="done-name"></h3>
-        <ul class="chips" id="done-cats" aria-label="Your categories"></ul>
+        <ul class="soups" id="done-cats" aria-label="Your soups"></ul>
         <div class="todo">
-          <p>Label your soup with what kind it is and your initials:<span class="tape" id="initials"></span></p>
+          <p><span id="label-text">Label your soup with what kind it is and your initials:</span><span class="tape" id="initials"></span></p>
           <p>Have your soup and ladle in the QA Room by <strong>11:00 A.M.</strong> so judging can start on time.</p>
         </div>
         <div class="actions">
@@ -430,7 +433,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       <textarea class="copybox" id="copybox" readonly hidden aria-label="Sign-up list, ready to copy"></textarea>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Soup</th><th>Categories</th><th>Signed up</th><th><span class="sr-only">Remove</span></th></tr></thead>
+          <thead><tr><th>Name</th><th>Categories and soups</th><th>Signed up</th><th><span class="sr-only">Remove</span></th></tr></thead>
           <tbody id="roster-rows"></tbody>
         </table>
       </div>
@@ -489,6 +492,12 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
   function clip(v, max) { return (typeof v === 'string' ? v : '').replace(/\s+/g, ' ').trim().slice(0, max); }
 
+  function cleanDishes(raw, cats) {
+    var out = {};
+    cats.forEach(function (c) { out[c] = clip(raw && typeof raw === 'object' ? raw[c] : '', 80); });
+    return out;
+  }
+
   function clean(id, d) {
     var cats = Array.isArray(d.categories) ? d.categories.filter(function (c) { return CAT_BY_ID[c]; }) : [];
     var seen = {};
@@ -496,8 +505,8 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
     return {
       id: id,
       name: clip(d.name, 60) || 'Someone',
-      dish: clip(d.dish, 80),
       categories: cats,
+      dishes: cleanDishes(d.dishes, cats),
       createdAt: Number(d.createdAt) || 0,
       updatedAt: Number(d.updatedAt) || 0
     };
@@ -515,8 +524,10 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   function buildTiles() {
     var box = $('cats');
     CATS.forEach(function (c) {
-      var label = make('label', 'cat');
-      label.dataset.cat = c.id;
+      var card = make('div', 'cat');
+      card.dataset.cat = c.id;
+
+      var pick = make('label', 'pick');
       var input = document.createElement('input');
       input.type = 'checkbox'; input.name = 'cat'; input.value = c.id;
       var tile = make('span', 'tile');
@@ -525,10 +536,28 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       text.append(make('span', 'cat-name', c.name), make('span', 'cat-ex', c.ex));
       var tick = make('span', 'tick'); tick.setAttribute('aria-hidden', 'true'); tick.innerHTML = CHECK;
       tile.append(thumb, text, tick);
-      label.append(input, tile);
-      box.append(label);
+      pick.append(input, tile);
+
+      var dish = make('div', 'dish');
+      var lbl = make('label', 'lbl', 'Name your soup');
+      lbl.htmlFor = 'dish-' + c.id;
+      lbl.append(make('span', 'sr-only', ' for ' + c.name), make('small', null, 'Optional'));
+      var field = document.createElement('input');
+      field.type = 'text'; field.id = 'dish-' + c.id; field.maxLength = 80; field.autocomplete = 'off';
+      field.placeholder = 'Ex: ' + c.ex.split(',')[0];
+      dish.append(lbl, field);
+
+      card.append(pick, dish);
+      box.append(card);
     });
   }
+
+  function syncTiles() {
+    document.querySelectorAll('.cat').forEach(function (card) {
+      card.classList.toggle('on', card.querySelector('input[name="cat"]').checked);
+    });
+  }
+  function resetForm() { $('form').reset(); syncTiles(); }
 
   var refs = {};
   function buildBoard() {
@@ -587,7 +616,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       r.list.replaceChildren.apply(r.list, list.map(function (e) {
         var li = make('li', S.fresh[e.id] ? 'fresh' : '');
         li.append(make('span', 'who', e.name));
-        if (e.dish) li.append(make('span', 'what', e.dish));
+        if (e.dishes[c.id]) li.append(make('span', 'what', e.dishes[c.id]));
         if (e.id === S.uid) li.append(make('span', 'you', 'You'));
         return li;
       }));
@@ -621,10 +650,15 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
     if (showDone) {
       $('done-name').textContent = S.mine.name;
       $('initials').textContent = initialsOf(S.mine.name);
-      var chips = $('done-cats');
-      chips.replaceChildren.apply(chips, S.mine.categories.map(function (id) {
-        var li = make('li', 'chip', CAT_BY_ID[id].name);
+      $('label-text').textContent = S.mine.categories.length > 1
+        ? 'Label each soup with what kind it is and your initials:'
+        : 'Label your soup with what kind it is and your initials:';
+      var list = $('done-cats');
+      list.replaceChildren.apply(list, S.mine.categories.map(function (id) {
+        var li = make('li');
         li.dataset.cat = id;
+        li.append(make('span', 'chip', CAT_BY_ID[id].name));
+        if (S.mine.dishes[id]) li.append(make('span', 'dish-name', S.mine.dishes[id]));
         return li;
       }));
       var w = $('withdraw');
@@ -657,7 +691,6 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
     ev.preventDefault();
     if (S.saving || S.readOnly || !S.db || !S.uid) return;
     var name = clip($('name').value, 60);
-    var dish = clip($('dish').value, 80);
     var cats = Array.prototype.slice.call(document.querySelectorAll('input[name="cat"]:checked')).map(function (i) { return i.value; });
 
     setErr('name-err', ''); setErr('cat-err', ''); setMsg('');
@@ -674,14 +707,16 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       return;
     }
 
+    var dishes = {};
+    cats.forEach(function (id) { dishes[id] = clip($('dish-' + id).value, 80); });
     var now = Date.now();
-    var data = { name: name, dish: dish, categories: cats, createdAt: (S.mine && S.mine.createdAt) || now, updatedAt: now };
+    var data = { name: name, categories: cats, dishes: dishes, createdAt: (S.mine && S.mine.createdAt) || now, updatedAt: now };
     S.saving = true; renderSignup(); setMsg('Saving...');
     retryOnce(function () { return S.db.doc('signups/' + S.uid).set(data); })
       .then(function () {
         S.mine = clean(S.uid, data);
         S.editing = false;
-        $('form').reset();
+        resetForm();
         setMsg('');
       })
       .catch(function (e) {
@@ -696,13 +731,14 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   function onEdit() {
     if (!S.mine) return;
     $('name').value = S.mine.name;
-    $('dish').value = S.mine.dish;
     document.querySelectorAll('input[name="cat"]').forEach(function (i) { i.checked = S.mine.categories.indexOf(i.value) !== -1; });
+    CATS.forEach(function (c) { $('dish-' + c.id).value = S.mine.dishes[c.id] || ''; });
+    syncTiles();
     S.editing = true; setMsg(''); renderSignup();
     $('name').focus();
   }
   function onCancelEdit() {
-    S.editing = false; $('form').reset(); setErr('name-err', ''); setErr('cat-err', ''); setMsg('');
+    S.editing = false; resetForm(); setErr('name-err', ''); setErr('cat-err', ''); setMsg('');
     renderSignup();
   }
 
@@ -733,12 +769,12 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
     var rows = $('roster-rows');
     rows.replaceChildren.apply(rows, S.entries.map(function (e) {
       var tr = make('tr');
-      tr.append(make('td', null, e.name), make('td', null, e.dish || '-'));
+      tr.append(make('td', null, e.name));
       var cell = make('td');
       var wrap = make('div', 'cats-cell');
       e.categories.forEach(function (id) {
         var s = make('span'); s.dataset.cat = id;
-        s.append(make('i', 'dot'), document.createTextNode(CAT_BY_ID[id].name));
+        s.append(make('i', 'dot'), document.createTextNode(CAT_BY_ID[id].name + (e.dishes[id] ? ': ' + e.dishes[id] : '')));
         wrap.append(s);
       });
       cell.append(wrap);
@@ -769,7 +805,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
     var lines = ['Soup Cook Off - Monday, October 19 - 12:00 PM - QA Room'];
     CATS.forEach(function (c) {
       var who = S.entries.filter(function (e) { return e.categories.indexOf(c.id) !== -1; })
-        .map(function (e) { return e.name + (e.dish ? ' (' + e.dish + ')' : ''); });
+        .map(function (e) { return e.name + (e.dishes[c.id] ? ' (' + e.dishes[c.id] + ')' : ''); });
       lines.push(c.name + ' (' + who.length + '): ' + (who.join(', ') || 'nobody yet'));
     });
     lines.push(plural(S.entries.length, 'cook', 'cooks') + ' total');
@@ -832,6 +868,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   buildBoard();
   renderCountdown();
   render();
+  $('cats').addEventListener('change', syncTiles);
   $('form').addEventListener('submit', onSubmit);
   $('edit').addEventListener('click', onEdit);
   $('cancel-edit').addEventListener('click', onCancelEdit);

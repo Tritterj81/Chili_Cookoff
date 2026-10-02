@@ -33,10 +33,13 @@ You need: a Google account (free) and a computer.
 3. Delete the test row in the sheet (right-click the row number > Delete row).
 
 ## Running it
-- **Watch the list:** keep the sheet open (or use the Google Sheets app on your phone). Rows appear as people sign up. The **Totals** tab counts cooks per category.
+- **Watch the list:** keep the sheet open (or use the Google Sheets app on your phone). Rows appear as people sign up, with each soup name under its category. The **Totals** tab counts cooks per category.
 - **Remove someone, or fix a duplicate:** delete their row. The page updates within a few seconds.
-- **Add someone yourself:** type a row. Put a check mark (or any text) under each category they chose.
+- **Add someone yourself:** type a row. Under each category they chose, type the soup name (or a check mark if there isn't one yet).
 - **People can change or withdraw** their own sign-up from the same phone or browser they used. From a different device, ask them to tell you and fix the row.
+
+## If you already set up an earlier version
+Paste the new `Code.gs` and `Index.html` over the old ones, then do the steps under "If you change the code later". The sheet fixes its own columns the next time the page loads. Soup names typed in the old "What they are making" column are dropped; category check marks are kept.
 
 ## If you change the code later
 Edit the file, then **Deploy > Manage deployments**, click the pencil, set Version to **New version**, and click **Deploy**. The link stays the same.

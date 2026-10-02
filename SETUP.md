@@ -10,10 +10,10 @@ You need: a Google account (free) and a computer.
 
 ## 2. Add the code
 1. In the sheet, click **Extensions > Apps Script**. A code editor opens in a new tab.
-2. You'll see a file called `Code.gs` with a few lines of starter code. Select everything in it, delete it, and paste the full contents of `apps-script/Code.gs` from this repo.
-3. Click the **+** next to "Files", choose **HTML**, and name it exactly `Index` (capital I; Google adds `.html`).
-4. Select everything in that new file, delete it, and paste the full contents of `apps-script/Index.html`. It is a long file. Use select-all (Ctrl+A or Cmd+A) in the source, then copy.
-5. Click the **Save** icon (or press Ctrl+S / Cmd+S).
+2. You'll see a file called `Code.gs` with a few lines of starter code. Select everything in it, delete it, and paste the full contents of `apps-script/SoupCookOff.gs` from this repo. This one file holds everything, so there is nothing else to paste. It is long; use select-all (Ctrl+A or Cmd+A) in the source, then copy.
+3. Click the **Save** icon (or press Ctrl+S / Cmd+S).
+
+(`Code.gs` and `Index.html` in the same folder are the same program split into two files, if you ever want to edit the page. You don't need them for setup.)
 
 ## 3. Publish it as a link
 1. Click **Deploy > New deployment**.
@@ -56,7 +56,7 @@ The page can show the full roster (cooks, categories, soups, times) to organizer
 - **One cook, several soups:** each soup is its own row. A cook can enter more than one soup in the same category.
 
 ## If you already set up an earlier version
-Paste the new `Code.gs` and `Index.html` over the old ones, then do the steps under "If you change the code later". The sheet keeps your old tabs as backups named "Old sign-ups ..." and "Old totals ...", and makes fresh **Sign-ups**, **Totals** and **Organizers** tabs. Old sign-ups are not carried over, so copy any real ones across by hand.
+Paste the new `SoupCookOff.gs` over the old `Code.gs`, and delete the old `Index` file, then do the steps under "If you change the code later". The sheet keeps your old tabs as backups named "Old sign-ups ..." and "Old totals ...", and makes fresh **Sign-ups**, **Totals** and **Organizers** tabs. Old sign-ups are not carried over, so copy any real ones across by hand.
 
 ## If you change the code later
 Edit the file, then **Deploy > Manage deployments**, click the pencil, set Version to **New version**, and click **Deploy**. The link stays the same.

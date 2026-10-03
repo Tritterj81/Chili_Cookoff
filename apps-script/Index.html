@@ -1169,7 +1169,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   function renderTabs() {
     $('tab-org').hidden = !S.org.signedIn;
     $('tab-count').textContent = S.loaded ? '(' + S.soupTotal + ')' : '';
-    if (!S.org.signedIn && $('app').dataset.view === 'org') setView('signup');
+    if (!S.org.signedIn && !S.org.open && $('app').dataset.view === 'org') setView('signup');
   }
 
   function render() { renderLive(); renderBoard(); renderSignup(); renderOrganizer(); renderTabs(); }

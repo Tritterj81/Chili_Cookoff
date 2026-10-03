@@ -122,6 +122,31 @@ function organizerRemove(code, id) {
   return rosterResult_(who.name);
 }
 
+/** Change one soup's cook, category or soup name. */
+function organizerEdit(code, id, change) {
+  var who = checkOrganizer_(code);
+  if (!who.ok) return who;
+  change = change || {};
+  var name = clip_(change.name, 60), cat = catId_(change.cat), dish = clip_(change.dish, 80);
+  if (!name) return fail_('name');
+  if (!cat) return fail_('soups');
+  if (!dish) return fail_('dish');
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return fail_('busy');
+  try {
+    var sh = sheet_();
+    var hit = parseRows_(sh).filter(function (r) { return r.id === String(id); })[0];
+    if (hit) {
+      sh.getRange(hit.row, 2, 1, 3).setValues([[name, catName_(cat), dish]]);
+      sortByCategory_(sh);
+    }
+    CacheService.getScriptCache().remove(CACHE_KEY);
+  } finally {
+    lock.releaseLock();
+  }
+  return rosterResult_(who.name);
+}
+
 function checkOrganizer_(code) {
   code = String(code || '').trim();
   var cache = CacheService.getScriptCache();

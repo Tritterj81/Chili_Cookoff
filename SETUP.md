@@ -44,7 +44,7 @@ The page can show the full roster (cooks, categories, soups, times) to organizer
 - **To add an organizer,** add a row: their name, and a passcode (4 or more characters). Tell them the passcode.
 - **To remove an organizer,** delete their row. They are signed out on the next refresh.
 - **To use it,** open the sign-up link, scroll to the bottom, tap **Organizer sign-in**, and enter a passcode. The page remembers you on that device until you tap **Sign out**.
-- In that view you can **Remove** a soup and **Copy list** (soups grouped by category, with cook names).
+- In that view you can **Edit** a soup (cook, category, soup name), **Remove** a soup, and **Copy list** (soups grouped by category, with cook names).
 - Anyone who can open the spreadsheet can read the passcodes, so share the sheet only with organizers.
 - 30 wrong passcodes in ten minutes pause organizer sign-in for a while. The sheet itself still works.
 
@@ -64,3 +64,6 @@ Edit the file, then **Deploy > Manage deployments**, click the pencil, set Versi
 ## Good to know
 - Google shows a small gray bar at the top of pages like this ("This application was created by another user, not by Google"). It is Google's own notice for scripts and can't be removed.
 - The `preview.html` file in this repo is a demo of the page that runs only in a browser, with sample soups. It is not the live sign-up.
+
+## On a phone
+The page works like an app on a phone: a bottom bar switches between **Sign up**, **Soups** and (once an organizer signs in) **Organizer**. For an app icon, open the link on the phone and use Share > **Add to Home Screen** (iPhone) or the browser menu > **Add to Home screen** (Android).

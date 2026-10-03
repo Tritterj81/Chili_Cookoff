@@ -347,6 +347,17 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .rhead { margin: .4rem 0 0; padding: .3rem .8rem .4rem; background: var(--c); color: var(--on); border-radius: 8px; font: 400 1.35rem/1.2 var(--font-script); }
 .foot .ver { font: 500 .75rem var(--font-body); color: var(--ink-soft); }
 .rlist { display: grid; gap: .75rem; }
+.rrow.plain-row { position: relative; gap: .15rem; padding-right: 6.6rem; min-height: 4.2rem; }
+.rrow.plain-row .rsoup { padding-top: .1rem; }
+.rwarn { margin: .3rem 0 0; color: var(--danger); font-weight: 600; font-size: .9rem; }
+.ricons { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .45rem; }
+.ricon {
+  width: 2.7rem; height: 2.7rem; display: grid; place-items: center; padding: 0; cursor: pointer;
+  background: transparent; color: var(--ink); border: 2px solid var(--line-strong); border-radius: 50%;
+}
+.ricon svg { width: 1.2rem; height: 1.2rem; }
+.ricon:hover { border-color: var(--ink); }
+.ricon.armed { background: var(--danger); border-color: var(--danger); color: var(--paper); }
 .rrow { display: grid; gap: .6rem; padding: .85rem; background: var(--field); border: 2px solid var(--line); border-left: .5rem solid var(--c, var(--line)); border-radius: 10px; }
 .rtop { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; }
 .rsoup { font-weight: 700; font-size: 1.15rem; overflow-wrap: anywhere; }
@@ -416,7 +427,6 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tabbar button svg { width: 1.6rem; height: 1.6rem; }
   .tabbar button[aria-current="page"] { opacity: 1; box-shadow: inset 0 3px 0 var(--c-spicy); }
   .tabbar b { font-weight: 700; }
-  .org-bar { position: sticky; top: 0; z-index: 5; background: var(--paper); padding-block: .5rem; border-bottom: 2px solid var(--line); }
   .btn { min-height: 3.1rem; }
   .foot p { font-size: 1.2rem; }
 }
@@ -1185,7 +1195,7 @@ function createOrganizers_(ss) {
   var KEY_NAME = 'soupCookOff2026Key';
   var ORG_NAME = 'soupCookOff2026Org';
   var MAX_PER_CAT = 6;
-  var APP_VERSION = '2026-10-03 \u00B7 organizer v3';
+  var APP_VERSION = '2026-10-03 \u00B7 organizer v4';
   var CHECK = '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   var S = {
@@ -1651,19 +1661,23 @@ function createOrganizers_(ss) {
       card.append(form);
       return card;
     }
-    var top = make('div', 'rtop'), tag = make('span', 'rcat');
-    tag.append(make('i', 'dot'), document.createTextNode((CAT_BY_ID[r.cat] || { name: r.cat }).name));
-    top.append(make('span', 'rsoup', r.dish), tag);
-    var meta = make('p', 'rmeta', r.name + (r.created ? ' \u00B7 ' + timeFmt.format(new Date(r.created)) : ''));
     var armed = o.removing === r.id;
-    var edit = make('button', 'btn ghost', 'Edit'); edit.type = 'button';
+    card.classList.add('plain-row');
+    card.append(make('span', 'rsoup', r.dish));
+    var meta = make('p', 'rmeta', r.name + (r.created ? ' \u00B7 ' + timeFmt.format(new Date(r.created)) : ''));
+    card.append(meta);
+    if (armed) card.append(make('p', 'rwarn', 'Tap the red X again to remove this soup.'));
+    var icons = make('div', 'ricons');
+    var edit = make('button', 'ricon'); edit.type = 'button';
+    edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M14.5 6.5l3 3"/></svg>';
     edit.setAttribute('aria-label', 'Edit ' + r.dish + ' by ' + r.name);
     edit.addEventListener('click', function () { S.org.editing = r.id; S.org.removing = null; renderOrganizer(); var n = $('ed-name'); if (n) n.focus(); });
-    var rm = make('button', 'btn ghost' + (armed ? ' armed' : ''), armed ? 'Tap again to remove' : 'Remove'); rm.type = 'button';
+    var rm = make('button', 'ricon' + (armed ? ' armed' : '')); rm.type = 'button';
+    rm.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     rm.setAttribute('aria-label', (armed ? 'Confirm remove ' : 'Remove ') + r.dish + ' by ' + r.name);
     rm.addEventListener('click', function () { onOrgRemove(r.id); });
-    var acts2 = make('div', 'ractions'); acts2.append(edit, rm);
-    card.append(top, meta, acts2);
+    icons.append(edit, rm);
+    card.append(icons);
     return card;
   }
 

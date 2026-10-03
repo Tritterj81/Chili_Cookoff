@@ -69,7 +69,7 @@ Edit the file, then **Deploy > Manage deployments**, click the pencil, set Versi
 The page works like an app on a phone: a bottom bar switches between **Sign up**, **Soups** and (once an organizer signs in) **Organizer**. For an app icon, open the link on the phone and use Share > **Add to Home Screen** (iPhone) or the browser menu > **Add to Home screen** (Android).
 
 ## Checking which version your link is running
-Scroll to the bottom of the sign-up page. A small line reads "App version ...". After you redeploy, it should match the latest version (currently "2026-10-03 · organizer v3"). If it shows an older version or none, the link is still serving old code: paste the newest `SoupCookOff.gs`, save, then Deploy > Manage deployments > pencil > Version: **New version** > Deploy.
+Scroll to the bottom of the sign-up page. A small line reads "App version ...". After you redeploy, it should match the latest version (currently "2026-10-03 · organizer v4"). If it shows an older version or none, the link is still serving old code: paste the newest `SoupCookOff.gs`, save, then Deploy > Manage deployments > pencil > Version: **New version** > Deploy.
 
 ## Managing the list from the Google Sheets app
 You can always fix the list straight from your phone with the Google Sheets app: open the sheet, tap a row on the Sign-ups tab, and delete it. The sign-up page updates within seconds.

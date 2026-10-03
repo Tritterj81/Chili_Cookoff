@@ -159,14 +159,14 @@ body {
   text-transform: uppercase; letter-spacing: .08em;
 }
 .lbl small, legend small { font: 500 .85rem var(--font-body); text-transform: none; letter-spacing: 0; color: var(--ink-soft); margin-left: .35rem; }
-input[type="text"] {
+input[type="text"], input[type="search"], input[type="password"] {
   width: 100%;
   font: 500 1.05rem var(--font-body); color: var(--ink);
   background: var(--field);
   border: 2px solid var(--line-strong); border-radius: 8px;
   padding: .7rem .85rem;
 }
-input[type="text"]::placeholder { color: var(--ink-soft); opacity: .8; }
+input[type="text"]::placeholder, input[type="search"]::placeholder { color: var(--ink-soft); opacity: .8; }
 input[aria-invalid="true"] { border-color: var(--danger); }
 .err { margin: 0; color: var(--danger); font-weight: 600; font-size: .95rem; }
 
@@ -336,6 +336,16 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .org-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: center; }
 .org-who { margin: 0; font-weight: 600; }
 .org-sum { margin: 0; color: var(--ink-soft); }
+.org-bar { display: grid; gap: .6rem; }
+.chiprow { display: flex; flex-wrap: wrap; gap: .4rem; }
+.fchip {
+  min-height: 2.6rem; padding: .3rem .85rem; cursor: pointer;
+  background: transparent; color: var(--ink); border: 2px solid var(--line-strong); border-radius: 999px;
+  font: 600 .85rem var(--font-head); text-transform: uppercase; letter-spacing: .06em;
+}
+.fchip[aria-pressed="true"] { background: var(--c, var(--band)); color: var(--on, var(--band-ink)); border-color: var(--c, var(--band)); }
+.rhead { margin: .4rem 0 0; padding: .3rem .8rem .4rem; background: var(--c); color: var(--on); border-radius: 8px; font: 400 1.35rem/1.2 var(--font-script); }
+.foot .ver { font: 500 .75rem var(--font-body); color: var(--ink-soft); }
 .rlist { display: grid; gap: .75rem; }
 .rrow { display: grid; gap: .6rem; padding: .85rem; background: var(--field); border: 2px solid var(--line); border-left: .5rem solid var(--c, var(--line)); border-radius: 10px; }
 .rtop { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; }
@@ -406,6 +416,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tabbar button svg { width: 1.6rem; height: 1.6rem; }
   .tabbar button[aria-current="page"] { opacity: 1; box-shadow: inset 0 3px 0 var(--c-spicy); }
   .tabbar b { font-weight: 700; }
+  .org-bar { position: sticky; top: 0; z-index: 5; background: var(--paper); padding-block: .5rem; border-bottom: 2px solid var(--line); }
   .btn { min-height: 3.1rem; }
   .foot p { font-size: 1.2rem; }
 }
@@ -537,12 +548,16 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
       </form>
 
       <div id="org-roster" hidden>
-        <p class="org-who" id="org-who"></p>
-        <p class="org-sum" id="org-sum"></p>
-        <div class="tools">
-          <button class="btn ghost" type="button" id="copy">Copy list</button>
-          <button class="btn ghost" type="button" id="org-out">Sign out</button>
-          <span class="msg" id="copy-msg" role="status" aria-live="polite"></span>
+        <div class="org-bar">
+          <p class="org-who" id="org-who"></p>
+          <p class="org-sum" id="org-sum"></p>
+          <input type="search" id="org-find" placeholder="Search by cook or soup" aria-label="Search the roster" autocomplete="off">
+          <div class="chiprow" id="org-filter" role="group" aria-label="Show category"></div>
+          <div class="tools">
+            <button class="btn ghost" type="button" id="copy">Copy list</button>
+            <button class="btn ghost" type="button" id="org-out">Sign out</button>
+            <span class="msg" id="copy-msg" role="status" aria-live="polite"></span>
+          </div>
         </div>
         <textarea class="copybox" id="copybox" readonly hidden aria-label="Roster, ready to copy"></textarea>
         <div class="rlist" id="roster-rows"></div>
@@ -568,6 +583,7 @@ td.when-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
   <footer class="foot">
     <p>Good Soup. Good People. Great Times!</p>
     <div class="gingham" aria-hidden="true"></div>
+    <p class="ver" id="ver"></p>
     <p class="org-link"><button type="button" class="linklike" id="org-open" aria-expanded="false" aria-controls="organizer">Organizer sign-in</button></p>
   </footer>
 </main>
@@ -1169,13 +1185,14 @@ function createOrganizers_(ss) {
   var KEY_NAME = 'soupCookOff2026Key';
   var ORG_NAME = 'soupCookOff2026Org';
   var MAX_PER_CAT = 6;
+  var APP_VERSION = '2026-10-03 \u00B7 organizer v3';
   var CHECK = '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   var S = {
     key: '', soups: [], counts: {}, cooks: 0, soupTotal: 0, me: null,
     loaded: false, conn: 'connecting', failures: 0,
     editing: false, saving: false, refreshing: false, fresh: {}, withdrawArmed: false,
-    org: { open: false, signedIn: false, code: '', data: null, busy: false, removing: null, editing: null }
+    org: { open: false, signedIn: false, code: '', data: null, busy: false, removing: null, editing: null, filter: '', q: '' }
   };
 
   function $(id) { return document.getElementById(id); }
@@ -1586,8 +1603,26 @@ function createOrganizers_(ss) {
     $('org-sum').textContent = plural(d.cooks, 'cook', 'cooks') + ', ' + plural(d.soupTotal, 'soup', 'soups') + '.';
     var list = $('roster-rows');
     if (o.editing && $('ed-name')) return;   // keep what the organizer is typing; the list refreshes after they save or cancel
+    var q = o.q.toLowerCase();
+    var rows = d.rows.filter(function (r) {
+      return (!o.filter || r.cat === o.filter) && (!q || (r.name + ' ' + r.dish).toLowerCase().indexOf(q) !== -1);
+    });
+    Array.prototype.forEach.call($('org-filter').children, function (b) { b.setAttribute('aria-pressed', b.dataset.cat === o.filter ? 'true' : 'false'); });
     if (!d.rows.length) { list.replaceChildren(make('p', 'empty', 'No soups yet.')); return; }
-    list.replaceChildren.apply(list, d.rows.map(rosterCard));
+    if (!rows.length) { list.replaceChildren(make('p', 'empty', 'No matches.')); return; }
+    var nodes = [];
+    CATS.forEach(function (c) {
+      var mine = rows.filter(function (r) { return r.cat === c.id; });
+      if (!mine.length) return;
+      var h = make('h3', 'rhead', c.name + ' (' + mine.length + ')');
+      h.dataset.cat = c.id;
+      nodes.push(h);
+      mine.forEach(function (r) {
+        try { nodes.push(rosterCard(r)); }
+        catch (e) { nodes.push(make('p', 'empty', r.dish + ' (could not be shown)')); }
+      });
+    });
+    list.replaceChildren.apply(list, nodes);
   }
 
   var timeFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -1748,11 +1783,24 @@ function createOrganizers_(ss) {
     if (!S.org.signedIn && !S.org.open && $('app').dataset.view === 'org') setView('signup');
   }
 
+  function buildFilter() {
+    var box = $('org-filter');
+    [{ id: '', name: 'All' }].concat(CATS).forEach(function (c) {
+      var b = make('button', 'fchip', c.name);
+      b.type = 'button'; b.dataset.cat = c.id; b.setAttribute('aria-pressed', c.id ? 'false' : 'true');
+      b.addEventListener('click', function () { S.org.filter = c.id; S.org.editing = null; renderOrganizer(); });
+      box.append(b);
+    });
+    $('org-find').addEventListener('input', function () { S.org.q = this.value.trim(); renderOrganizer(); });
+  }
+
   function render() { renderLive(); renderBoard(); renderSignup(); renderOrganizer(); renderTabs(); }
 
   S.key = lsGet(KEY_NAME);
   buildTiles();
   buildBoard();
+  buildFilter();
+  $('ver').textContent = 'App version ' + APP_VERSION;
   renderCountdown();
   render();
   $('cats').addEventListener('change', syncTiles);
